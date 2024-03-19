@@ -12,6 +12,7 @@ var signal
 var redLight
 var yellowLight
 var greenLight
+var trafficPassed = false
 
 console.log(ts0.redLight)
 
@@ -71,11 +72,11 @@ function createVehicle(mode) {
   //   console.log(img.id + ' ' + direction + ' ' + source+' '+lastVehicle[trackId])
 
   let duration = 15000 + vehicleType * 0.2 * 2000
-  animateVehicle(img.id, vehicleType, direction, lastVehicle[trackId], duration)
+  animateVehicle(img.id, vehicleType, direction, lastVehicle[trackId], duration, trafficPassed)
   lastVehicle[trackId] = img.id
 }
 
-function slowDown(id, vehicleType, direction, prevVehicleId, remainingTime) {
+function slowDown(id, vehicleType, direction, prevVehicleId, remainingTime, trafficPassed) {
   // setTimeout(() => {
   animateVehicle(id, vehicleType, direction, prevVehicleId, remainingTime)
   // }, 5);
@@ -138,80 +139,92 @@ function enableGreen(signalId) {
   greenLight.style.backgroundColor = 'red'
 }
 
-function animateVehicle(id, vehicleType, direction, prevVehicleId, duration) {
-    const v = document.querySelector(`#${id}`);
-    let initialPosition;
-    let targetPosition;
-    let targetTransform;
-    let animationId;
-  
-    switch (direction) {
-      case 'down':
-        targetPosition = 868 + mapOffsetY;
-        targetTransform = `translateY(${targetPosition}px)`;
-        break;
-      case 'right':
-        targetPosition = 868 + mapOffsetX;
-        targetTransform = `translateX(${targetPosition}px)`;
-        break;
-      case 'up':
-        targetPosition = -100 - mapOffsetY;
-        targetTransform = `translateY(${targetPosition}px)`;
-        break;
-      case 'left':
-        targetPosition = -100 - mapOffsetX;
-        targetTransform = `translateX(${targetPosition}px)`;
-        break;
-    }
-  
-    if (direction == 'up' || direction == 'down') {
-      initialPosition = v.getBoundingClientRect().y;
-    } else if (direction == 'right' || direction == 'left') {
-      initialPosition = v.getBoundingClientRect().x;
-    }
-  
-    const startTime = performance.now();
-  
-    function updatePosition(timestamp) {
-      const elapsedTime = timestamp - startTime;
-      const progress = elapsedTime / duration;
-  
-      if (progress >= 1) {
-        v.style.transform = targetTransform;
-        console.log('Animation complete. Current position:', targetPosition);
-        v.remove();
-        return;
-      }
-  
-      const newPosition = initialPosition + progress * (targetPosition - initialPosition);
-  
-      const prevVehicle = document.querySelector(`#${prevVehicleId}`);
-      if (prevVehicle && document.contains(prevVehicle)) {
-        const prevPosition = direction == 'up' || direction == 'down' ? prevVehicle.getBoundingClientRect().y  : prevVehicle.getBoundingClientRect().x ;
-        const currentPos = direction == 'up' || direction == 'down' ? v.getBoundingClientRect().y : v.getBoundingClientRect().x;
-        const distance = Math.abs(prevPosition - currentPos);
-  
-        if (distance < 100) {
-          console.log('Animation Paused. Current position:', targetPosition);
-          slowDown(id, vehicleType, direction, prevVehicleId, duration - elapsedTime);
-          return;
-        }
-      }
-  
-      // Continue the animation if it was paused and distance is greater than 100 pixels
-      if (direction == 'up' || direction == 'down') {
-        v.style.transform = `translateY(${newPosition}px)`;
-      } else if (direction == 'right' || direction == 'left') {
-        v.style.transform = `translateX(${newPosition}px)`;
-      }
-  
-      // Continue the animation loop regardless of whether it was paused or not
-      animationId = requestAnimationFrame(updatePosition);
-    }
-  
-    animationId = requestAnimationFrame(updatePosition);
+function animateVehicle(id, vehicleType, direction, prevVehicleId, duration, trafficPassed) {
+  const v = document.querySelector(`#${id}`)
+  let initialPosition
+  let targetPosition
+  let targetTransform
+  let animationId
+
+  switch (direction) {
+    case 'down':
+      targetPosition = 868 + mapOffsetY
+      targetTransform = `translateY(${targetPosition}px)`
+      break
+    case 'right':
+      targetPosition = 868 + mapOffsetX
+      targetTransform = `translateX(${targetPosition}px)`
+      break
+    case 'up':
+      targetPosition = -100 - mapOffsetY
+      targetTransform = `translateY(${targetPosition}px)`
+      break
+    case 'left':
+      targetPosition = -100 - mapOffsetX
+      targetTransform = `translateX(${targetPosition}px)`
+      break
   }
-  
+
+  if (direction == 'up' || direction == 'down') {
+    initialPosition = v.getBoundingClientRect().y
+  } else if (direction == 'right' || direction == 'left') {
+    initialPosition = v.getBoundingClientRect().x
+  }
+
+  const startTime = performance.now()
+
+  function updatePosition(timestamp) {
+    const elapsedTime = timestamp - startTime
+    const progress = elapsedTime / duration
+
+    if (progress >= 1) {
+      v.style.transform = targetTransform
+      console.log('Animation complete. Current position:', targetPosition)
+      v.remove()
+      return
+    }
+
+    const newPosition = initialPosition + progress * (targetPosition - initialPosition)
+
+    const prevVehicle = document.querySelector(`#${prevVehicleId}`)
+    if (prevVehicle && document.contains(prevVehicle)) {
+      const currentPos = direction == 'up' || direction == 'down' ? v.getBoundingClientRect().y : v.getBoundingClientRect().x
+      const distance =
+        direction == 'up'
+          ? v.getBoundingClientRect().y - prevVehicle.getBoundingClientRect().y - prevVehicle.clientHeight
+          : direction == 'down'
+          ? prevVehicle.getBoundingClientRect().y - v.clientHeight - v.getBoundingClientRect().y
+          : direction == 'left'
+          ? prevVehicle.getBoundingClientRect().x - v.getBoundingClientRect().x - prevVehicle.clientWidth
+          : direction == 'right'
+          ? prevVehicle.getBoundingClientRect().x - v.getBoundingClientRect().x - v.clientWidth
+          : null
+
+      //   const distance = Math.abs(prevPosition - currentPos)
+
+      // const position
+      if (distance < 10) {
+        // console.log('Animation Paused. Current position:', targetPosition)
+        slowDown(id, vehicleType, direction, prevVehicleId, duration - elapsedTime + 10, trafficPassed)
+        return
+      }
+
+      //   console.log(prevVehicleId, ' ', prevPosition, ' ', id, ' ', newPosition)
+    }
+
+    // Continue the animation if it was paused and distance is greater than 100 pixels
+    if (direction == 'up' || direction == 'down') {
+      v.style.transform = `translateY(${newPosition}px)`
+    } else if (direction == 'right' || direction == 'left') {
+      v.style.transform = `translateX(${newPosition}px)`
+    }
+
+    // Continue the animation loop regardless of whether it was paused or not
+    animationId = requestAnimationFrame(updatePosition)
+  }
+
+  animationId = requestAnimationFrame(updatePosition)
+}
 
 // // Start the animation loop
 // animateVehicle(); // You need to call this function somewhere to start the animation loop
