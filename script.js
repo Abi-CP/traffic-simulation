@@ -13,10 +13,15 @@ var redLight
 var yellowLight
 var greenLight
 var trafficPassed = false
+var signalState = [0, 0, 0, 0]
 
-console.log(ts0.redLight)
+// console.log(ts0.redLight)
 
-var lastVehicle = new Array(8)
+var prevVehicle = new Array(8)
+
+function getSignalState(signal) {
+  return signalState[signal]
+}
 
 function createVehicle(mode) {
   let source
@@ -24,7 +29,6 @@ function createVehicle(mode) {
   let trackElem
   let transform
   let vehicleType
-  let prevVehicle
   let directions = ['up', 'right', 'down', 'left']
   let direction = directions[Math.floor(Math.random() * directions.length)]
 
@@ -68,78 +72,153 @@ function createVehicle(mode) {
   img.style.transform = transform
   trackElem.appendChild(img)
 
-  console.log(lastVehicle[trackId] != undefined)
-  //   console.log(img.id + ' ' + direction + ' ' + source+' '+lastVehicle[trackId])
+  // console.log(prevVehicle[trackId] != undefined)
+  //   console.log(img.id + ' ' + direction + ' ' + source+' '+prevVehicle[trackId])
 
   let duration = 15000 + vehicleType * 0.2 * 2000
-  animateVehicle(img.id, vehicleType, direction, lastVehicle[trackId], duration, trafficPassed)
-  lastVehicle[trackId] = img.id
+  animateVehicle(img.id, vehicleType, direction, prevVehicle[trackId], duration, trafficPassed)
+  prevVehicle[trackId] = img.id
 }
 
 function slowDown(id, vehicleType, direction, prevVehicleId, remainingTime, trafficPassed) {
-  // setTimeout(() => {
-  animateVehicle(id, vehicleType, direction, prevVehicleId, remainingTime)
-  // }, 5);
+  animateVehicle(id, vehicleType, direction, prevVehicleId, remainingTime > 12500 ? 12500 : remainingTime + 10, trafficPassed)
 }
 
 function trafficController() {
-  for (let i = 0; i < 4; i++) {
-    signal = document.getElementById(`ts${i}`)
-  }
+  let i = 0
+  switchSignals(i++)
+
+  setInterval(() => {
+    switchSignals(i)
+    i = (i + 1) % 4 // Increment i and ensure it wraps around from 3 back to 0
+  }, 18000)
 }
+
+function switchSignals(i) {
+  var currCounter = document.getElementById(`tsc${i}`);
+  var readyCounter = document.getElementById(`tsc${(i+1)%4}`);
+  var readyCount = 10,
+    goCount = 10,
+    slowCount = 4;
+
+  setTimeout(() => {
+    signalState[i] = 1;
+    var goInterval = setInterval(() => {
+      if (goCount > -1) {
+        currCounter.innerText = goCount;
+        goCount--;
+      } else {
+        currCounter.innerText = '5';
+        clearInterval(goInterval);
+      }
+    }, 999);
+    enableGreen(i);
+    // checkTraffic(signalState) // Pass the signalState array to checkTraffic
+  }, 0);
+
+  setTimeout(() => {
+    var readyInterval = setInterval(() => {
+      if (readyCount > -1) { // Correct condition for countdown
+        readyCounter.innerText = readyCount;
+        readyCount--;
+      } else {
+        currCounter.innerText = '10';
+        clearInterval(readyInterval);
+      }
+    }, 999);
+  }, 5999);
+
+  setTimeout(() => {
+    signalState[i] = 2;
+    var slowInterval = setInterval(() => {
+      if (slowCount > -1) {
+        currCounter.innerText = slowCount;
+        slowCount--;
+        console.log(slowCount);
+      } else {
+        currCounter.innerText = '--';
+        clearInterval(slowInterval);
+      }
+    }, 1000);
+    enableYellow(i);
+    // checkTraffic(signalState) // Pass the signalState array to checkTraffic
+  }, 11999);
+
+  setTimeout(() => {
+    signalState[i] = 0; // Update signal state to red
+    enableRed(i);
+    // console.log(signalState)
+    // checkTraffic(signalState) // Pass the signalState array to checkTraffic
+  }, 17999);
+}
+
 
 trafficController()
 
-function disableAllRed() {
-  for (let i = 0; i < 4; i++) {
-    signal = document.getElementById(`ts${i}`)
-    let redLight = signal.querySelector('.frame .light.red')
-    redLight.style.backgroundColor = '#7e7e7e'
-  }
+function disableRed(i) {
+  signal = document.getElementById(`ts${i}`)
+  redLight = signal.querySelector('.frame .light.red')
+  redLight.style.backgroundColor = '#7e7e7e'
+  signalState[i] = -1
 }
 
-function disableAllYellow() {
-  for (let i = 0; i < 4; i++) {
-    signal = document.getElementById(`ts${i}`)
-    yellowLight = signal.querySelector('.frame .light.yellow')
-    yellowLight.style.backgroundColor = '#7e7e7e'
-  }
+function disableYellow(i) {
+  signal = document.getElementById(`ts${i}`)
+  yellowLight = signal.querySelector('.frame .light.yellow')
+  yellowLight.style.backgroundColor = '#7e7e7e'
+  signalState[i] = -1
 }
 
-function disableAllGreen() {
-  for (let i = 0; i < 4; i++) {
-    signal = document.getElementById(`ts${i}`)
-    greenLight = signal.querySelector('.frame .light.green')
-    greenLight.style.backgroundColor = '#7e7e7e'
-  }
+function disableGreen(i) {
+  signal = document.getElementById(`ts${i}`)
+  greenLight = signal.querySelector('.frame .light.green')
+  greenLight.style.backgroundColor = '#7e7e7e'
+  signalState[i] = -1
 }
 
-function enableAllRed() {
-  disableAllYellow()
-  disableAllGreen()
-  for (let i = 0; i < 4; i++) {
-    signal = document.getElementById(`ts${i}`)
-    redLight = signal.querySelector('.frame .light.red')
-    redLight.style.backgroundColor = 'red'
-  }
+function enableRed(i) {
+  signal = document.getElementById(`ts${i}`)
+  disableYellow(i)
+  redLight = signal.querySelector('.frame .light.red')
+  redLight.style.backgroundColor = 'red'
+  signalState[i] = 0
 }
 
-enableAllRed()
-disableAllGreen()
-disableAllYellow()
-function enableYellow(signalId) {
-  signal = document.getElementById(signalId)
+function enableYellow(i) {
+  signal = document.getElementById(`ts${i}`)
+  //   disableRed(i)
+  disableGreen(i)
   yellowLight = signal.querySelector('.frame .light.yellow')
   yellowLight.style.backgroundColor = 'yellow'
+  signalState[i] = 2
 }
 
-function enableGreen(signalId) {
-  signal = document.getElementById(signalId)
-  greenLight = signal.querySelector('.frame .light.red')
-  greenLight.style.backgroundColor = 'red'
+function enableGreen(i) {
+  signal = document.getElementById(`ts${i}`)
+  disableRed(i)
+  greenLight = signal.querySelector('.frame .light.green')
+  greenLight.style.backgroundColor = '#39d600'
+  signalState[i] = 1
+}
+
+async function checkTraffic(id, vehicleType, direction, prevVehicleId, remainingTime, trafficPassed, signal) {
+  // console.log(id);
+  let currentSignal = getSignalState(signal)
+  if (currentSignal === 1) {
+    // Check if the signal is green
+    trafficPassed = true
+    // console.log(signal);
+    animateVehicle(id, vehicleType, direction, prevVehicleId, 9000 + vehicleType * 0.2 * 2000, trafficPassed)
+  }
+  animateVehicle(id, vehicleType, direction, prevVehicleId, 9000 + vehicleType * 0.2 * 2000, trafficPassed)
+
+  // }
+
+  setTimeout(() => {}, 1)
 }
 
 function animateVehicle(id, vehicleType, direction, prevVehicleId, duration, trafficPassed) {
+  // console.log(id);
   const v = document.querySelector(`#${id}`)
   let initialPosition
   let targetPosition
@@ -179,7 +258,7 @@ function animateVehicle(id, vehicleType, direction, prevVehicleId, duration, tra
 
     if (progress >= 1) {
       v.style.transform = targetTransform
-      console.log('Animation complete. Current position:', targetPosition)
+      // console.log('Animation complete. Current position:', targetPosition)
       v.remove()
       return
     }
@@ -187,15 +266,58 @@ function animateVehicle(id, vehicleType, direction, prevVehicleId, duration, tra
     const newPosition = initialPosition + progress * (targetPosition - initialPosition)
 
     const prevVehicle = document.querySelector(`#${prevVehicleId}`)
+
+    switch (direction) {
+      case 'up':
+        if (!trafficPassed && v.getBoundingClientRect().y - mapOffsetY < 448) {
+          // console.log(id);
+
+          checkTraffic(id, vehicleType, direction, prevVehicleId, duration + 10, trafficPassed, 0)
+          return
+        }
+        if (trafficPassed && v.getBoundingClientRect().y + v.clientHeight - mapOffsetY < 10) {
+          v.remove()
+        }
+        break
+
+      case 'down':
+        if (!trafficPassed && v.getBoundingClientRect().y + v.clientHeight - mapOffsetY > 320) {
+          checkTraffic(id, vehicleType, direction, prevVehicleId, duration - elapsedTime + 10, trafficPassed, 2)
+          return
+        }
+        if (trafficPassed && v.getBoundingClientRect().y + v.clientHeight - mapOffsetY > 778) {
+          v.remove()
+        }
+        break
+
+      case 'left':
+        if (!trafficPassed && v.getBoundingClientRect().x - v.clientWidth - mapOffsetX < 400) {
+          checkTraffic(id, vehicleType, direction, prevVehicleId, duration - elapsedTime + 10, trafficPassed, 3)
+          return
+        }
+        if (trafficPassed && v.getBoundingClientRect().x - v.clientWidth - mapOffsetX < 10) {
+          v.remove()
+        }
+        break
+      case 'right':
+        if (!trafficPassed && v.getBoundingClientRect().x + v.clientWidth - mapOffsetX > 320) {
+          checkTraffic(id, vehicleType, direction, prevVehicleId, duration - elapsedTime + 10, trafficPassed, 1)
+          return
+        }
+        if (trafficPassed && v.getBoundingClientRect().x + v.clientWidth - mapOffsetX > 778) {
+          v.remove()
+        }
+        break
+    }
+
     if (prevVehicle && document.contains(prevVehicle)) {
-      const currentPos = direction == 'up' || direction == 'down' ? v.getBoundingClientRect().y : v.getBoundingClientRect().x
       const distance =
         direction == 'up'
           ? v.getBoundingClientRect().y - prevVehicle.getBoundingClientRect().y - prevVehicle.clientHeight
           : direction == 'down'
           ? prevVehicle.getBoundingClientRect().y - v.clientHeight - v.getBoundingClientRect().y
           : direction == 'left'
-          ? prevVehicle.getBoundingClientRect().x - v.getBoundingClientRect().x - prevVehicle.clientWidth
+          ? v.getBoundingClientRect().x - prevVehicle.getBoundingClientRect().x - prevVehicle.clientWidth
           : direction == 'right'
           ? prevVehicle.getBoundingClientRect().x - v.getBoundingClientRect().x - v.clientWidth
           : null
@@ -205,7 +327,11 @@ function animateVehicle(id, vehicleType, direction, prevVehicleId, duration, tra
       // const position
       if (distance < 10) {
         // console.log('Animation Paused. Current position:', targetPosition)
-        slowDown(id, vehicleType, direction, prevVehicleId, duration - elapsedTime + 10, trafficPassed)
+        if (trafficPassed) {
+          slowDown(id, vehicleType, direction, prevVehicleId, duration - elapsedTime + 10, trafficPassed)
+        } else {
+          slowDown(id, vehicleType, direction, prevVehicleId, duration + 10, trafficPassed)
+        }
         return
       }
 
@@ -233,20 +359,21 @@ function animateVehicle(id, vehicleType, direction, prevVehicleId, duration, tra
 // animateElement();
 
 createVehicle(0)
-createVehicle(0)
-createVehicle(0)
-createVehicle(0)
-createVehicle(0)
-createVehicle(0)
-createVehicle(0)
-createVehicle(0)
-createVehicle(0)
-createVehicle(0)
-createVehicle(0)
-createVehicle(0)
-createVehicle(0)
-createVehicle(0)
+// createVehicle(0)
+// createVehicle(0)
+// createVehicle(0)
+// createVehicle(0)
+// createVehicle(0)
+// createVehicle(0)
+// createVehicle(0)
+// createVehicle(0)
+// createVehicle(0)
+// // createVehicle(0)
+// // createVehicle(0)
+// // createVehicle(0)
+// // createVehicle(0)
 
-setInterval(() => {
-  createVehicle(0)
-}, 2000)
+// createVehicle(0)
+// setInterval(() => {
+//   createVehicle(0)
+// }, 5000)
