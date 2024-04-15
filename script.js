@@ -114,7 +114,6 @@ async function switchSignals(currSignalIndex, nextSignalIndex) {
       if (yellowSC >= 0) {
         currSC.innerHTML = yellowSC--
       } else {
-        console.log('toRed')
         currSC.innerHTML = '--'
         disableYellow(currSignalIndex)
         enableRed(currSignalIndex)
@@ -158,7 +157,6 @@ async function switchSignals(currSignalIndex, nextSignalIndex) {
   }
 
   function enableRed(i) {
-    console.log('red')
     signal = document.getElementById(`ts${i}`)
     disableYellow(i)
     redLight = signal.querySelector('.frame .light.red')
